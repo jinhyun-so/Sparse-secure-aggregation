@@ -35,9 +35,9 @@ def FedAvg_TopK(w, K_rate):
         
         tmp_flat = w[0][k].reshape((cur_len,))
         
-        vals, idx = tmp_flat.topk(K_)
+        _, idx = tmp_flat.abs().topk(K_)
         topk = torch.zeros_like(tmp_flat)
-        topk[idx] = vals
+        topk[idx] = tmp_flat[idx]*1.0
         
         # print(f"topk={topk}, cur_shape={cur_shape}")
 
@@ -46,12 +46,13 @@ def FedAvg_TopK(w, K_rate):
         for i in range(1,len(w)):
             tmp_flat = w[i][k].reshape((cur_len,))
             
-            vals, idx = tmp_flat.topk(K_)
+            _, idx = tmp_flat.abs().topk(K_)
             topk = torch.zeros_like(tmp_flat)
-            topk[idx] = vals
+            topk[idx] = tmp_flat[idx]*1.0
             
             w_avg[k] += topk.reshape(cur_shape)
         
+        w_avg[k] = torch.div(w_avg[k], len(w))
         # print(w_avg[k])
         # print(len(w))
         # w_avg[k] = torch.div(w_avg[k], len(w))
