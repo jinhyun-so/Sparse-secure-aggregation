@@ -127,14 +127,14 @@ class LocalUpdate(object):
         self.selected_clients = []
         self.ldr_train = DataLoader(DatasetSplit(dataset, idxs), batch_size=self.args.local_bs, shuffle=True)
 
-    def train(self, net, is_send_gradient = False):
+    def train(self, net, is_send_gradient = False, l1_weight = 0.0):
         
         if is_send_gradient == True:
             prev_net = copy.deepcopy(net)
         net.train()
         # train and update
         if self.args.opt == 'ADAM':
-            optimizer = torch.optim.Adam(net.parameters(), lr=self.args.lr, weight_decay=5e-4)
+            optimizer = torch.optim.Adam(net.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
         else:
             optimizer = torch.optim.SGD(net.parameters(), lr=self.args.lr, momentum=self.args.momentum, weight_decay = self.args.weight_decay)
         #optimizer = optim.Adam(net.parameters(), lr=0.001, weight_decay=5e-4)
@@ -149,8 +149,18 @@ class LocalUpdate(object):
                 images, labels = images.to(self.args.device), labels.to(self.args.device)
                 net.zero_grad()
                 log_probs = net(images)
-                loss = self.loss_func(log_probs, labels)
-                loss.backward()
+
+                if l1_weight == 0.0:
+                    loss = self.loss_func(log_probs, labels)
+                    loss.backward()
+                else:
+                    loss = self.loss_func(log_probs, labels)
+
+                    l1_norm = sum(p.abs().sum() for p in net.parameters())
+
+                    loss = loss + l1_weight * l1_norm
+                    loss.backward()
+
                 optimizer.step()
                 '''
                 if self.args.verbose and batch_idx % 10 == 0: #self.args.verbose
