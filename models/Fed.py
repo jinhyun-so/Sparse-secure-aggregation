@@ -22,6 +22,8 @@ def FedAvg_TopK(w, K_rate):
     w_avg = copy.deepcopy(w[0])
     
     total_len = 0
+
+    avg_count_non_zero_per_w = 0
     
     for k in w_avg.keys():
         w0_np = w_avg[k].cpu().detach().numpy()
@@ -34,6 +36,8 @@ def FedAvg_TopK(w, K_rate):
         K_ = int(K_rate * cur_len)
         
         tmp_flat = w[0][k].reshape((cur_len,))
+
+        avg_count_non_zero_per_w += torch.count_nonzero(copy.deepcopy(w[0][k].reshape((cur_len,))))
         
         _, idx = tmp_flat.abs().topk(K_)
         topk = torch.zeros_like(tmp_flat)
@@ -45,6 +49,8 @@ def FedAvg_TopK(w, K_rate):
         # denom = np.zeros()
         for i in range(1,len(w)):
             tmp_flat = w[i][k].reshape((cur_len,))
+
+            avg_count_non_zero_per_w += torch.count_nonzero(copy.deepcopy(w[i][k].reshape((cur_len,))))
             
             _, idx = tmp_flat.abs().topk(K_)
             topk = torch.zeros_like(tmp_flat)
@@ -61,7 +67,7 @@ def FedAvg_TopK(w, K_rate):
     for k in w_avg.keys():
         total_count_non_zero += torch.count_nonzero(w_avg[k])
         
-    return w_avg, total_len, total_count_non_zero
+    return w_avg, total_len, total_count_non_zero, avg_count_non_zero_per_w/float(len(w))
 
 
 def FedQAvg(w,q_val):
